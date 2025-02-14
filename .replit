@@ -6,3 +6,8 @@ channel = "stable-24_05"
 
 [deployment]
 run = ["sh", "-c", "python manage.py runserver "]
+
+[[ports]]
+localPort = 8000
+externalPort = 80
+exposeLocalhost = true
