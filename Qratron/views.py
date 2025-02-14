@@ -1,10 +1,9 @@
 import json
 import os
-import tempfile
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from rest_framework.viewsets import ModelViewSet
 
 class Ingest(APIView):
 
@@ -57,3 +56,6 @@ class Ingest(APIView):
             results[question] = rag_chain.invoke( { "input" : questions[question] } )['answer']
 
         return Response(results,content_type = 'application/json')
+
+class Dashboard(ModelViewSet):
+    model 
