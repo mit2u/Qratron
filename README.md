@@ -1,40 +1,96 @@
-text
 # Qratron
 
-**Qratron** is a Django-based Python application that takes PDF files and answers questions based on their content.
+**Qratron** is a Django-based AI document assistant for PDF question answering and auto-generated slide decks.
 
-## Features
+## What's New in This Improved Fork
 
-- Upload PDF files and perform Q&A
-- Built on Django for robust backend support
-- Simple interface to interact with files and questions
+Inspired by the `pptgen` idea, this fork extends Qratron from plain PDF Q&A into a mini **document-to-insight pipeline**:
+
+- PDF Retrieval-Augmented Q&A with source tracking
+- Batch Q&A endpoint for multiple prompts in one request
+- Automatic slide-outline generation (JSON + markdown preview) from uploaded PDFs
+- Health endpoint for deployment checks
+
+## API Endpoints
+
+### 1) Health Check
+`GET /api/v1/health/`
+
+Returns service status.
+
+### 2) Ingest + Q&A (file-based questions)
+`POST /api/v1/ingest/`
+
+Multipart form fields:
+- `pdf_file`: PDF file
+- `questions`: JSON file with key -> question mapping
+
+### 3) Batch Ingest + Q&A (inline JSON)
+`POST /api/v1/ingest/batch/`
+
+Multipart form fields:
+- `pdf_file`: PDF file
+- `questions_json`: JSON string, e.g.
+
+```json
+{
+  "q1": "What is the main objective?",
+  "q2": "List key milestones"
+}
+```
+
+### 4) Generate Presentation
+`POST /api/v1/presentation/`
+
+Multipart form fields:
+- `pdf_file`: PDF file
+- `title` (optional): presentation title (default: `Qratron Auto Deck`)
+- `topic` (optional): guidance prompt for deck focus
+- `max_slides` (optional): integer in range 3-15
+
+Returns structured slide JSON and a markdown deck preview that can be passed into a PPT generator frontend/service.
 
 ## Getting Started
 
 ### Prerequisites
 
 - Python 3.x
-- Django (see `requirements.txt` for dependencies)
+- `TOGETHER_API_KEY` environment variable
 
 ### Installation
 
+```bash
 git clone https://github.com/mit2u/Qratron.git
 cd Qratron
 pip install -r requirements.txt
+```
 
-text
+### Run
 
-### Usage
-
+```bash
 python manage.py runserver
+```
 
-text
-- Open your browser and go to `http://127.0.0.1:8000/`
-- Upload a PDF and ask questions
+Open: `http://127.0.0.1:8000/`
 
-## File Structure
 
-- `.idea/` — IDE configuration files
-- `Qratron/` — Main Django application code
-- `manage.py` — Django management script
-- `requirements.txt` — Project dependencies
+## Local model support (pptgen-style)
+
+Qratron now supports **local OpenAI-compatible model backends** (for example Ollama or LM Studio), similar to local model workflows used in pptgen-style stacks.
+
+Set:
+- `QRATRON_PROVIDER=local`
+- `QRATRON_LOCAL_BASE_URL=http://localhost:11434/v1`
+- `QRATRON_LOCAL_MODEL=llama3.1`
+
+When using local mode, Qratron does not require `TOGETHER_API_KEY` for the chat model client.
+
+## Notes
+
+- LLM and embeddings are currently configured for Together API + LangChain stack.
+- If you run into embedding provider auth issues, set the appropriate OpenAI-compatible env vars for `OpenAIEmbeddings`.
+
+
+## Documentation
+
+- API reference: `docs/API.md`

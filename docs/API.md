@@ -1,0 +1,81 @@
+# Qratron API Guide
+
+This document describes the consolidated API for PDF Q&A and presentation planning.
+
+## Endpoints
+
+## `GET /api/v1/health/`
+Returns service status.
+
+**Response**
+```json
+{
+  "status": "ok",
+  "service": "qratron"
+}
+```
+
+## `POST /api/v1/ingest/`
+Single upload + JSON file questions.
+
+**Multipart fields**
+- `pdf_file` *(required)*
+- `questions` *(required JSON file: object or array)*
+
+## `POST /api/v1/ingest/batch/`
+Single upload + inline JSON questions.
+
+**Multipart fields**
+- `pdf_file` *(required)*
+- `questions_json` *(required JSON string: object or array)*
+
+**Example `questions_json` values**
+```json
+{"q1": "What is the goal?", "q2": "What risks are mentioned?"}
+```
+or
+```json
+["What is the goal?", "What risks are mentioned?"]
+```
+
+## `POST /api/v1/presentation/`
+Generates a pptgen-style plan from PDF context.
+
+**Multipart fields**
+- `pdf_file` *(required)*
+- `title` *(optional, default `Qratron Auto Deck`)*
+- `topic` *(optional, default `Summarize this document`)*
+- `max_slides` *(optional int, clamped to `3..15`)*
+
+**Response**
+```json
+{
+  "title": "Roadmap",
+  "slide_count": 4,
+  "slides": [
+    {"title": "Problem", "bullets": ["...", "..."]}
+  ],
+  "markdown_preview": "# Roadmap\n\n## Slide 1: Problem\n- ..."
+}
+```
+
+## Error behavior
+- `400` for validation/JSON errors.
+- `502` for upstream/service failures (LLM/API key/vector processing).
+
+## Environment variables
+- `QRATRON_PROVIDER` *(default `together`; set to `local` / `ollama` / `lmstudio` for local mode)*
+- `TOGETHER_API_KEY` *(required by default remote mode)*
+- `QRATRON_API_KEY_ENV` *(override which key env var is read in remote mode)*
+- `QRATRON_LLM_BASE_URL` *(override remote model gateway URL)*
+- `QRATRON_MODEL` *(override remote model identifier)*
+- `QRATRON_LOCAL_BASE_URL` *(default `http://localhost:11434/v1`)*
+- `QRATRON_LOCAL_MODEL` *(default `llama3.1`)*
+
+### Local mode example
+```bash
+export QRATRON_PROVIDER=local
+export QRATRON_LOCAL_BASE_URL=http://localhost:11434/v1
+export QRATRON_LOCAL_MODEL=llama3.1
+python manage.py runserver
+```

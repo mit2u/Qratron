@@ -1,59 +1,103 @@
 import json
-import os
-import tempfile
 
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from Qratron.services import (
+    ServiceError,
+    answer_questions,
+    build_slide_plan,
+    load_pdf_docs,
+    normalize_questions,
+    render_markdown_slides,
+)
+
+
+def _error(message: str, code=status.HTTP_400_BAD_REQUEST):
+    return Response({"error": message}, status=code)
+
+
+class Health(APIView):
+
+    def get(self, request):
+        return Response({"status": "ok", "service": "qratron"})
 
 
 class Ingest(APIView):
 
     def post(self, request):
-        files = request.FILES
-        pdf_file = files.get('pdf_file')
-        questions_file =  files.get('questions')
-        from langchain_community.document_loaders import PyPDFLoader
-        with open('/tmp/ingest.pdf','w+b') as fp :
-            bytesio_object = pdf_file.file
-            fp.write( bytesio_object.getbuffer() )
-            loader = PyPDFLoader( '/tmp/ingest.pdf' )
-            docs = loader.load()
-            print( len( docs ) )
-        questions = json.load(questions_file.file)
-        print(questions)
+        pdf_file = request.FILES.get("pdf_file")
+        questions_file = request.FILES.get("questions")
 
-        from langchain_openai import ChatOpenAI
+        if not pdf_file or not questions_file:
+            return _error("Both pdf_file and questions are required.")
 
-        llm = ChatOpenAI( base_url = "https://api.together.xyz/v1" , api_key = os.environ[ "TOGETHER_API_KEY" ] ,
-            model = "google/gemma-2-9b-it" , )
+        try:
+            questions = normalize_questions(json.load(questions_file.file))
+            docs = load_pdf_docs(pdf_file)
+            results = answer_questions(docs=docs, questions=questions)
+        except json.JSONDecodeError:
+            return _error("questions file must contain valid JSON.")
+        except ServiceError as exc:
+            return _error(str(exc), status.HTTP_502_BAD_GATEWAY)
 
-        from langchain_chroma import Chroma
-        from langchain_openai import OpenAIEmbeddings
-        from langchain_text_splitters import RecursiveCharacterTextSplitter
+        return Response(results, content_type="application/json")
 
-        text_splitter = RecursiveCharacterTextSplitter( chunk_size = 1000 , chunk_overlap = 200 )
-        splits = text_splitter.split_documents( docs )
-        vectorstore = Chroma.from_documents( documents = splits , embedding = OpenAIEmbeddings() )
 
-        retriever = vectorstore.as_retriever()
-        from langchain.chains import create_retrieval_chain
-        from langchain.chains.combine_documents import create_stuff_documents_chain
-        from langchain_core.prompts import ChatPromptTemplate
+class IngestBatch(APIView):
 
-        system_prompt = ("You are an assistant for question-answering tasks. "
-                         "Use the following pieces of retrieved context to answer "
-                         "the question. If you don't know the answer, say that you "
-                         "don't know. Use three sentences maximum and keep the "
-                         "answer concise."
-                         "\n\n"
-                         "{context}")
+    def post(self, request):
+        pdf_file = request.FILES.get("pdf_file")
+        if not pdf_file:
+            return _error("pdf_file is required.")
 
-        prompt = ChatPromptTemplate.from_messages( [ ("system" , system_prompt) , ("human" , "{input}") , ] )
+        questions_json = request.data.get("questions_json")
+        if not questions_json:
+            return _error("questions_json field is required and must be valid JSON.")
 
-        question_answer_chain = create_stuff_documents_chain( llm , prompt )
-        rag_chain = create_retrieval_chain( retriever , question_answer_chain )
-        results = {}
-        for question in questions :
-            results[question] = rag_chain.invoke( { "input" : questions[question] } )['answer']
+        try:
+            questions = normalize_questions(json.loads(questions_json))
+            docs = load_pdf_docs(pdf_file)
+            results = answer_questions(docs=docs, questions=questions)
+        except json.JSONDecodeError:
+            return _error("questions_json is not valid JSON.")
+        except ServiceError as exc:
+            return _error(str(exc), status.HTTP_502_BAD_GATEWAY)
 
-        return Response(results,content_type = 'application/json')
+        return Response({"count": len(results), "results": results}, content_type="application/json")
+
+
+class GeneratePresentation(APIView):
+
+    def post(self, request):
+        pdf_file = request.FILES.get("pdf_file")
+        if not pdf_file:
+            return _error("pdf_file is required.")
+
+        title = request.data.get("title", "Qratron Auto Deck")
+        topic = request.data.get("topic", "Summarize this document")
+
+        try:
+            max_slides = int(request.data.get("max_slides", 6))
+        except ValueError:
+            return _error("max_slides must be an integer.")
+
+        max_slides = min(max(max_slides, 3), 15)
+
+        try:
+            docs = load_pdf_docs(pdf_file)
+            plan = build_slide_plan(docs=docs, topic=topic, max_slides=max_slides, title=title)
+            markdown = render_markdown_slides(plan)
+        except ServiceError as exc:
+            return _error(str(exc), status.HTTP_502_BAD_GATEWAY)
+
+        return Response(
+            {
+                "title": plan.get("title", title),
+                "slide_count": len(plan.get("slides", [])),
+                "slides": plan.get("slides", []),
+                "markdown_preview": markdown,
+            },
+            content_type="application/json",
+        )
