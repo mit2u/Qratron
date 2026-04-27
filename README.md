@@ -94,3 +94,23 @@ When using local mode, Qratron does not require `TOGETHER_API_KEY` for the chat 
 ## Documentation
 
 - API reference: `docs/API.md`
+
+
+## Deploy on Replit
+
+This repo now includes Replit deployment files (`.replit` and `replit.nix`).
+
+### Steps
+1. Create a new Replit project by importing this repository.
+2. In **Secrets**, set at least:
+   - `TOGETHER_API_KEY` (for remote model mode) OR set local mode vars below.
+   - optional: `QRATRON_PROVIDER=local`
+   - optional: `QRATRON_LOCAL_BASE_URL=http://localhost:11434/v1`
+   - optional: `QRATRON_LOCAL_MODEL=llama3.1`
+3. Replit will install dependencies from `requirements.txt`.
+4. Run the app. It binds to `0.0.0.0:$PORT` (default `3000`) and auto-runs migrations.
+
+### Replit host/security notes
+- `ALLOWED_HOSTS` defaults include `.replit.dev`.
+- `CSRF_TRUSTED_ORIGINS` defaults include `https://*.replit.dev`.
+

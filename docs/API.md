@@ -79,3 +79,11 @@ export QRATRON_LOCAL_BASE_URL=http://localhost:11434/v1
 export QRATRON_LOCAL_MODEL=llama3.1
 python manage.py runserver
 ```
+
+
+## Replit deployment quickstart
+- Import repo into Replit.
+- Ensure secrets are configured (`TOGETHER_API_KEY` for remote provider, or local provider vars).
+- Run button starts Django on `0.0.0.0:$PORT`.
+- Migrations are executed in Replit deployment run command.
+

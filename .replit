@@ -1,0 +1,32 @@
+language = "python3"
+entrypoint = "manage.py"
+
+modules = ["python-3.10"]
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:${PORT:-3000}"]
+
+autoscale = true
+
+[env]
+PYTHONUNBUFFERED = "1"
+DJANGO_SETTINGS_MODULE = "Qratron.settings"
+
+[packager]
+language = "python3"
+
+  [packager.features]
+  packageSearch = true
+  guessImports = true
+
+[unitTest]
+language = "python3"
+
+[gitHubImport]
+requiredFiles = [".replit", "replit.nix", "pyproject.toml", "requirements.txt"]
+
+[run]
+run = "python manage.py runserver 0.0.0.0:${PORT:-3000}"
