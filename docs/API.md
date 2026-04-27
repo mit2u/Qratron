@@ -71,6 +71,9 @@ Generates a pptgen-style plan from PDF context.
 - `QRATRON_MODEL` *(override remote model identifier)*
 - `QRATRON_LOCAL_BASE_URL` *(default `http://localhost:11434/v1`)*
 - `QRATRON_LOCAL_MODEL` *(default `llama3.1`)*
+- `QRATRON_HF_SPACE_BASE_URL` *(required for `hf_space` provider, OpenAI-compatible `/v1` URL)*
+- `QRATRON_HF_MODEL` *(optional Hugging Face model id override)*
+- `HF_TOKEN` *(optional Hugging Face token; defaults to `hf`)*
 
 ### Local mode example
 ```bash
@@ -87,3 +90,11 @@ python manage.py runserver
 - Run button starts Django on `0.0.0.0:$PORT`.
 - Migrations are executed in Replit deployment run command.
 
+
+### Hugging Face Space mode example
+```bash
+export QRATRON_PROVIDER=hf_space
+export QRATRON_HF_SPACE_BASE_URL=https://your-space.hf.space/v1
+export HF_TOKEN=hf_xxx
+python manage.py runserver
+```

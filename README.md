@@ -96,6 +96,19 @@ When using local mode, Qratron does not require `TOGETHER_API_KEY` for the chat 
 - API reference: `docs/API.md`
 
 
+
+## Hugging Face Spaces support
+
+Qratron now supports **OpenAI-compatible Hugging Face Space endpoints**.
+
+Set:
+- `QRATRON_PROVIDER=hf_space` (or `huggingface_space`)
+- `QRATRON_HF_SPACE_BASE_URL=https://<your-space-url>/v1`
+- optional: `HF_TOKEN=<your_hf_token>`
+- optional: `QRATRON_HF_MODEL=<model-id>`
+
+This is useful when your Space exposes an OpenAI-compatible `/v1` API proxy.
+
 ## Deploy on Replit
 
 This repo now includes Replit deployment files (`.replit` and `replit.nix`).

@@ -108,6 +108,22 @@ class LLMConfigTests(TestCase):
         self.assertEqual(kwargs['base_url'], 'http://localhost:11434/v1')
         self.assertEqual(kwargs['api_key'], 'local')
 
+
+    @patch('Qratron.services.ChatOpenAI')
+    @patch.dict('os.environ', {'QRATRON_HF_SPACE_BASE_URL': 'https://demo-space.example.com/v1', 'HF_TOKEN': 'hf_test'})
+    def test_get_llm_hf_space_provider(self, mock_chat):
+        cfg = LLMConfig(provider='hf_space', model='meta-llama/Llama-3.1-8B-Instruct')
+        get_llm(cfg)
+        kwargs = mock_chat.call_args.kwargs
+        self.assertEqual(kwargs['base_url'], 'https://demo-space.example.com/v1')
+        self.assertEqual(kwargs['api_key'], 'hf_test')
+
+    @patch.dict('os.environ', {}, clear=True)
+    def test_get_llm_hf_space_missing_base_url(self):
+        cfg = LLMConfig(provider='huggingface_space')
+        with self.assertRaises(ServiceError):
+            get_llm(cfg)
+
     @patch.dict('os.environ', {}, clear=True)
     def test_get_llm_missing_remote_api_key(self):
         cfg = LLMConfig(provider='together', api_key_env='TOGETHER_API_KEY')

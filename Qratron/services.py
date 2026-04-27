@@ -44,6 +44,9 @@ def _is_local_provider(provider: str) -> bool:
     return provider.lower() in {"local", "ollama", "lmstudio"}
 
 
+def _is_hf_space_provider(provider: str) -> bool:
+    return provider.lower() in {"huggingface_space", "hf_space", "huggingface"}
+
 
 def get_llm(config: LLMConfig | None = None) -> ChatOpenAI:
     config = config or LLMConfig()
@@ -51,15 +54,22 @@ def get_llm(config: LLMConfig | None = None) -> ChatOpenAI:
     if _is_local_provider(config.provider):
         local_url = os.getenv("QRATRON_LOCAL_BASE_URL", "http://localhost:11434/v1")
         local_model = os.getenv("QRATRON_LOCAL_MODEL", "llama3.1")
-        # OpenAI-compatible local servers often accept any non-empty key.
         return ChatOpenAI(base_url=local_url, api_key="local", model=local_model)
+
+    if _is_hf_space_provider(config.provider):
+        hf_base_url = os.getenv("QRATRON_HF_SPACE_BASE_URL")
+        if not hf_base_url:
+            raise ServiceError("Missing QRATRON_HF_SPACE_BASE_URL for Hugging Face Spaces provider.")
+
+        hf_model = os.getenv("QRATRON_HF_MODEL", config.model)
+        hf_token = os.getenv("HF_TOKEN", "hf")
+        return ChatOpenAI(base_url=hf_base_url, api_key=hf_token, model=hf_model)
 
     api_key = os.getenv(config.api_key_env)
     if not api_key:
         raise ServiceError(f"Missing API key environment variable: {config.api_key_env}")
 
     return ChatOpenAI(base_url=config.base_url, api_key=api_key, model=config.model)
-
 
 
 def load_pdf_docs(pdf_file):
@@ -78,13 +88,11 @@ def load_pdf_docs(pdf_file):
     return docs
 
 
-
 def _build_retriever(docs):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     splits = text_splitter.split_documents(docs)
     vectorstore = Chroma.from_documents(documents=splits, embedding=OpenAIEmbeddings())
     return vectorstore.as_retriever()
-
 
 
 def normalize_questions(questions: dict | list) -> dict[str, str]:
@@ -100,7 +108,6 @@ def normalize_questions(questions: dict | list) -> dict[str, str]:
         return normalized
 
     raise ServiceError("Questions payload must be an object or an array of strings.")
-
 
 
 def answer_questions(docs, questions: dict[str, str], system_prompt: str | None = None):
@@ -131,7 +138,6 @@ def answer_questions(docs, questions: dict[str, str], system_prompt: str | None 
     return results
 
 
-
 def _extract_json_fragment(text: str) -> str:
     candidate = text.strip().replace("```json", "").replace("```", "").strip()
     try:
@@ -145,7 +151,6 @@ def _extract_json_fragment(text: str) -> str:
         raise ServiceError("Slide generator did not return valid JSON.")
 
     return match.group(0)
-
 
 
 def parse_slides_json(text: str, fallback_title: str) -> dict:
@@ -162,7 +167,6 @@ def parse_slides_json(text: str, fallback_title: str) -> dict:
     return {"title": str(parsed.get("title") or fallback_title)[:120], "slides": safe_slides}
 
 
-
 def build_slide_plan(docs, topic: str, max_slides: int, title: str):
     retriever = _build_retriever(docs)
     context_docs = retriever.invoke(topic)
@@ -170,7 +174,6 @@ def build_slide_plan(docs, topic: str, max_slides: int, title: str):
     prompt = SLIDES_PROMPT.format(max_slides=max_slides, topic=topic, context=context_blob)
     response = get_llm().invoke(prompt)
     return parse_slides_json(response.content, fallback_title=title)
-
 
 
 def render_markdown_slides(plan: dict) -> str:
