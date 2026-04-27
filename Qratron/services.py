@@ -144,8 +144,12 @@ def answer_questions(docs, questions: dict[str, str], system_prompt: str | None 
     rag_chain = create_retrieval_chain(retriever, qa_chain)
 
     results = {}
-    for key, question in questions.items():
-        raw = rag_chain.invoke({"input": question})
+    # Prepare inputs for batch processing
+    inputs = [{"input": q} for q in questions.values()]
+    raw_results = rag_chain.batch(inputs)
+
+    results = {}
+    for (key, question), raw in zip(questions.items(), raw_results):
         context = raw.get("context", [])
         sources = sorted(
             {
