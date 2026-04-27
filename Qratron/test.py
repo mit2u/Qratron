@@ -7,6 +7,7 @@ from django.test import TestCase
 from Qratron.services import (
     LLMConfig,
     ServiceError,
+    get_embeddings,
     get_llm,
     normalize_questions,
     parse_slides_json,
@@ -123,6 +124,30 @@ class LLMConfigTests(TestCase):
         cfg = LLMConfig(provider='huggingface_space')
         with self.assertRaises(ServiceError):
             get_llm(cfg)
+
+
+    @patch('Qratron.services.OpenAIEmbeddings')
+    def test_get_embeddings_local_provider(self, mock_embed):
+        cfg = LLMConfig(provider='local')
+        get_embeddings(cfg)
+        kwargs = mock_embed.call_args.kwargs
+        self.assertEqual(kwargs['base_url'], 'http://localhost:11434/v1')
+        self.assertEqual(kwargs['api_key'], 'local')
+
+    @patch('Qratron.services.OpenAIEmbeddings')
+    @patch.dict('os.environ', {'QRATRON_HF_SPACE_BASE_URL': 'https://demo-space.example.com/v1', 'HF_TOKEN': 'hf_test'})
+    def test_get_embeddings_hf_space_provider(self, mock_embed):
+        cfg = LLMConfig(provider='hf_space')
+        get_embeddings(cfg)
+        kwargs = mock_embed.call_args.kwargs
+        self.assertEqual(kwargs['base_url'], 'https://demo-space.example.com/v1')
+        self.assertEqual(kwargs['api_key'], 'hf_test')
+
+    @patch.dict('os.environ', {}, clear=True)
+    def test_get_embeddings_missing_remote_api_key(self):
+        cfg = LLMConfig(provider='together', api_key_env='TOGETHER_API_KEY')
+        with self.assertRaises(ServiceError):
+            get_embeddings(cfg)
 
     @patch.dict('os.environ', {}, clear=True)
     def test_get_llm_missing_remote_api_key(self):

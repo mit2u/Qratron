@@ -72,6 +72,30 @@ def get_llm(config: LLMConfig | None = None) -> ChatOpenAI:
     return ChatOpenAI(base_url=config.base_url, api_key=api_key, model=config.model)
 
 
+def get_embeddings(config: LLMConfig | None = None) -> OpenAIEmbeddings:
+    config = config or LLMConfig()
+
+    if _is_local_provider(config.provider):
+        local_url = os.getenv("QRATRON_LOCAL_BASE_URL", "http://localhost:11434/v1")
+        local_model = os.getenv("QRATRON_LOCAL_EMBEDDING_MODEL", "nomic-embed-text")
+        return OpenAIEmbeddings(base_url=local_url, api_key="local", model=local_model)
+
+    if _is_hf_space_provider(config.provider):
+        hf_base_url = os.getenv("QRATRON_HF_SPACE_BASE_URL")
+        if not hf_base_url:
+            raise ServiceError("Missing QRATRON_HF_SPACE_BASE_URL for Hugging Face Spaces provider.")
+        hf_token = os.getenv("HF_TOKEN", "hf")
+        hf_embedding_model = os.getenv("QRATRON_HF_EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+        return OpenAIEmbeddings(base_url=hf_base_url, api_key=hf_token, model=hf_embedding_model)
+
+    api_key = os.getenv(config.api_key_env)
+    if not api_key:
+        raise ServiceError(f"Missing API key environment variable: {config.api_key_env}")
+
+    embedding_model = os.getenv("QRATRON_EMBEDDING_MODEL", "text-embedding-3-small")
+    return OpenAIEmbeddings(base_url=config.base_url, api_key=api_key, model=embedding_model)
+
+
 def load_pdf_docs(pdf_file):
     from langchain_community.document_loaders import PyPDFLoader
 
@@ -91,7 +115,7 @@ def load_pdf_docs(pdf_file):
 def _build_retriever(docs):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     splits = text_splitter.split_documents(docs)
-    vectorstore = Chroma.from_documents(documents=splits, embedding=OpenAIEmbeddings())
+    vectorstore = Chroma.from_documents(documents=splits, embedding=get_embeddings())
     return vectorstore.as_retriever()
 
 

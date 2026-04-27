@@ -68,11 +68,14 @@ Generates a pptgen-style plan from PDF context.
 - `TOGETHER_API_KEY` *(required by default remote mode)*
 - `QRATRON_API_KEY_ENV` *(override which key env var is read in remote mode)*
 - `QRATRON_LLM_BASE_URL` *(override remote model gateway URL)*
-- `QRATRON_MODEL` *(override remote model identifier)*
+- `QRATRON_MODEL` *(override remote chat model identifier)*
+- `QRATRON_EMBEDDING_MODEL` *(override remote embedding model identifier)*
 - `QRATRON_LOCAL_BASE_URL` *(default `http://localhost:11434/v1`)*
 - `QRATRON_LOCAL_MODEL` *(default `llama3.1`)*
+- `QRATRON_LOCAL_EMBEDDING_MODEL` *(default `nomic-embed-text`)*
 - `QRATRON_HF_SPACE_BASE_URL` *(required for `hf_space` provider, OpenAI-compatible `/v1` URL)*
-- `QRATRON_HF_MODEL` *(optional Hugging Face model id override)*
+- `QRATRON_HF_MODEL` *(optional Hugging Face chat model id override)*
+- `QRATRON_HF_EMBEDDING_MODEL` *(optional Hugging Face embedding model id override)*
 - `HF_TOKEN` *(optional Hugging Face token; defaults to `hf`)*
 
 ### Local mode example

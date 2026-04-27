@@ -82,8 +82,11 @@ Set:
 - `QRATRON_PROVIDER=local`
 - `QRATRON_LOCAL_BASE_URL=http://localhost:11434/v1`
 - `QRATRON_LOCAL_MODEL=llama3.1`
+- `QRATRON_LOCAL_EMBEDDING_MODEL=nomic-embed-text`
 
 When using local mode, Qratron does not require `TOGETHER_API_KEY` for the chat model client.
+
+You can also set `QRATRON_EMBEDDING_MODEL` for remote providers.
 
 ## Notes
 
@@ -106,6 +109,7 @@ Set:
 - `QRATRON_HF_SPACE_BASE_URL=https://<your-space-url>/v1`
 - optional: `HF_TOKEN=<your_hf_token>`
 - optional: `QRATRON_HF_MODEL=<model-id>`
+- optional: `QRATRON_HF_EMBEDDING_MODEL=<embedding-model-id>`
 
 This is useful when your Space exposes an OpenAI-compatible `/v1` API proxy.
 
